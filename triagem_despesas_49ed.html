@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Triagem de despesas — 49 Educação</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #13213C; --navy-mid: #1e3254;
+    --orange: #E55D09; --orange-light: #f87330; --orange-pale: rgba(229,93,9,0.09);
+    --white: #F8F9FB; --surface: #ffffff; --surface2: #f2f4f7;
+    --border: rgba(19,33,60,0.10); --border-strong: rgba(19,33,60,0.20);
+    --text: #13213C; --text-mid: #4a5568; --text-soft: #8896a8;
+    --green: #1a7f5a; --green-bg: #e6f5ef;
+    --amber: #b45309; --amber-bg: #fef3cd;
+    --red: #b91c1c; --red-bg: #fee2e2;
+    --mono: 'DM Mono', monospace; --sans: 'DM Sans', sans-serif;
+    --radius: 10px; --radius-sm: 6px;
+  }
+  body { font-family: var(--sans); background: var(--navy); min-height: 100vh; color: var(--text); display: flex; flex-direction: column; }
+  header { background: var(--navy); padding: 18px 32px; display: flex; align-items: center; gap: 14px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+  .logo-mark { width: 32px; height: 32px; background: var(--orange); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-weight: 500; font-size: 12px; color: white; flex-shrink: 0; }
+  .header-text h1 { font-size: 15px; font-weight: 500; color: white; }
+  .header-text p { font-size: 12px; color: rgba(255,255,255,0.38); margin-top: 1px; }
+  main { flex: 1; background: var(--white); padding: 28px 32px; display: flex; flex-direction: column; gap: 20px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 800px) { .grid-2 { grid-template-columns: 1fr; } main { padding: 18px; } header { padding: 14px 18px; } }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .panel-header { padding: 12px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--orange); flex-shrink: 0; }
+  .panel-title { font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-soft); }
+  .panel-body { padding: 18px; }
+  .field { margin-bottom: 12px; }
+  .field:last-child { margin-bottom: 0; }
+  label { display: block; font-size: 12px; font-weight: 500; color: var(--text-soft); margin-bottom: 4px; }
+  input[type=number], input[type=text], select { width: 100%; font-family: var(--sans); font-size: 14px; color: var(--text); background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 11px; outline: none; transition: border-color 0.15s, background 0.15s; -webkit-appearance: none; }
+  input:focus, select:focus { border-color: var(--orange); background: white; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .divider { height: 1px; background: var(--border); margin: 14px 0; }
+  .sub-label { font-size: 11px; font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-soft); margin-bottom: 10px; }
+  .metrics-row { display: grid; grid-template-columns: 1fr auto 1fr; border-bottom: 1px solid var(--border); }
+  .metric-cell { padding: 16px 18px; }
+  .metric-cell + .metric-cell { border-left: 1px solid var(--border); }
+  .metric-arrow { display: flex; align-items: center; justify-content: center; padding: 16px 8px; color: var(--text-soft); font-size: 16px; border-left: 1px solid var(--border); }
+  .metric-label { font-size: 11px; color: var(--text-soft); font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 5px; }
+  .metric-value { font-family: var(--mono); font-size: 18px; font-weight: 500; color: var(--text); transition: color 0.2s; }
+  .metric-value.ok { color: var(--green); }
+  .metric-value.warn { color: var(--amber); }
+  .metric-value.danger { color: var(--red); }
+  .status-row { padding: 12px 18px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
+  .badge { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+  .badge.ok { background: var(--green-bg); color: var(--green); }
+  .badge.warn { background: var(--amber-bg); color: var(--amber); }
+  .badge.danger { background: var(--red-bg); color: var(--red); }
+  .status-text { font-size: 13px; color: var(--text-mid); }
+  .msg-section { padding: 16px 18px; }
+  .msg-label { font-size: 11px; font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase; color: var(--text-soft); margin-bottom: 8px; }
+  .msg-box { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; font-size: 13px; line-height: 1.7; color: var(--text); white-space: pre-wrap; min-height: 72px; }
+  .copy-btn { margin-top: 10px; width: 100%; display: flex; align-items: center; justify-content: center; background: var(--navy); color: white; border: none; border-radius: var(--radius-sm); padding: 9px 18px; font-family: var(--sans); font-size: 13px; font-weight: 500; cursor: pointer; transition: background 0.15s, transform 0.1s; }
+  .copy-btn:hover { background: var(--navy-mid); }
+  .copy-btn:active { transform: scale(0.98); }
+  .copy-btn.copied { background: var(--green); }
+  .chart-wrap { padding: 18px; }
+  .chart-toolbar { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .toolbar-label { font-size: 12px; color: var(--text-soft); font-weight: 500; }
+  .seg-btn { font-family: var(--sans); font-size: 12px; font-weight: 500; padding: 5px 12px; border: 1px solid var(--border-strong); border-radius: 20px; background: transparent; color: var(--text-soft); cursor: pointer; transition: all 0.15s; }
+  .seg-btn.active { background: var(--navy); color: white; border-color: var(--navy); }
+  .mes-selector { font-family: var(--sans); font-size: 12px; padding: 5px 10px; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface2); color: var(--text); cursor: pointer; margin-left: auto; }
+  .impact-note { margin-top: 12px; padding: 11px 14px; background: var(--orange-pale); border: 1px solid rgba(229,93,9,0.18); border-radius: var(--radius-sm); font-size: 12px; color: var(--text-mid); line-height: 1.6; display: none; }
+  .impact-note strong { color: var(--orange); font-family: var(--mono); font-weight: 500; }
+  .hist-add-row { padding: 12px 18px; display: flex; gap: 10px; align-items: center; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .add-btn { background: var(--orange); color: white; border: none; border-radius: var(--radius-sm); padding: 8px 14px; font-family: var(--sans); font-size: 12px; font-weight: 500; cursor: pointer; transition: background 0.15s; white-space: nowrap; }
+  .add-btn:hover { background: var(--orange-light); }
+  .hint { font-size: 12px; color: var(--text-soft); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; font-size: 11px; font-weight: 500; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-soft); padding: 9px 18px; border-bottom: 1px solid var(--border); background: var(--surface2); }
+  td { padding: 10px 18px; border-bottom: 1px solid var(--border); color: var(--text-mid); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface2); }
+  td.mono { font-family: var(--mono); font-size: 12px; color: var(--text); }
+  .empty-row td { text-align: center; color: var(--text-soft); padding: 24px; font-size: 13px; }
+  .del-btn { background: none; border: none; color: var(--text-soft); cursor: pointer; font-size: 14px; padding: 2px 6px; border-radius: 4px; transition: color 0.1s, background 0.1s; }
+  .del-btn:hover { color: var(--red); background: var(--red-bg); }
+  .summary-bar { padding: 11px 18px; background: var(--orange-pale); border-top: 1px solid rgba(229,93,9,0.15); display: flex; gap: 24px; font-size: 12px; color: var(--text-mid); flex-wrap: wrap; }
+  .summary-bar strong { font-family: var(--mono); font-weight: 500; color: var(--orange); }
+  footer { background: var(--navy); padding: 10px 32px; font-size: 11px; color: rgba(255,255,255,0.22); text-align: right; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">49</div>
+  <div class="header-text">
+    <h1>Triagem de despesas</h1>
+    <p>Gestão &amp; Finanças · fluxo de caixa integrado 2025–2026</p>
+  </div>
+</header>
+
+<main>
+  <div class="grid-2">
+
+    <div class="panel">
+      <div class="panel-header"><div class="dot"></div><span class="panel-title">Situação do mês</span></div>
+      <div class="panel-body">
+        <div class="field-row">
+          <div class="field">
+            <label>Mês de referência</label>
+            <select id="mes-ref" onchange="onMesChange()"></select>
+          </div>
+          <div class="field">
+            <label>Reserva mínima de caixa (R$)</label>
+            <input type="number" id="reserva" value="8000" min="0" oninput="calcular()">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Saldo inicial do mês (R$)</label>
+            <input type="number" id="saldo" oninput="calcular()">
+          </div>
+          <div class="field">
+            <label>Despesas comprometidas (R$)</label>
+            <input type="number" id="comprometido" oninput="calcular()">
+          </div>
+        </div>
+        <div class="field">
+          <label>Receitas previstas no mês (R$)</label>
+          <input type="number" id="receitas" oninput="calcular()">
+        </div>
+        <div class="divider"></div>
+        <div class="sub-label">Nova despesa</div>
+        <div class="field-row">
+          <div class="field">
+            <label>Descrição</label>
+            <input type="text" id="desc" value="Consultoria de marketing" oninput="calcular()">
+          </div>
+          <div class="field">
+            <label>Valor (R$)</label>
+            <input type="number" id="valor" value="5000" min="0" oninput="calcular()">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Urgência</label>
+            <select id="urgencia" onchange="calcular()">
+              <option value="alta">Alta — trava algo crítico</option>
+              <option value="media" selected>Média — importante mas flexível</option>
+              <option value="baixa">Baixa — pode esperar</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Natureza</label>
+            <select id="natureza" onchange="calcular()">
+              <option value="pontual" selected>Pontual (única vez)</option>
+              <option value="recorrente">Recorrente (todo mês)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header"><div class="dot"></div><span class="panel-title">Diagnóstico</span></div>
+      <div class="metrics-row">
+        <div class="metric-cell">
+          <div class="metric-label">Margem antes</div>
+          <div class="metric-value" id="margem-antes">—</div>
+        </div>
+        <div class="metric-arrow">→</div>
+        <div class="metric-cell">
+          <div class="metric-label">Margem depois</div>
+          <div class="metric-value" id="margem-depois">—</div>
+        </div>
+      </div>
+      <div class="status-row">
+        <span id="status-badge" class="badge">—</span>
+        <span id="status-texto" class="status-text"></span>
+      </div>
+      <div class="msg-section">
+        <div class="msg-label">Argumento pronto — copiar e mandar</div>
+        <div id="msg" class="msg-box"></div>
+        <button class="copy-btn" id="copy-btn" onclick="copiarMsg()">Copiar mensagem</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><div class="dot"></div><span class="panel-title">Impacto no fluxo anual — dados da sua planilha</span></div>
+    <div class="chart-wrap">
+      <div class="chart-toolbar">
+        <span class="toolbar-label">Ver:</span>
+        <button class="seg-btn active" onclick="setView('saldo',this)">Saldo projetado</button>
+        <button class="seg-btn" onclick="setView('resultado',this)">Resultado mensal</button>
+        <button class="seg-btn" onclick="setView('receitas',this)">Receitas vs despesas</button>
+        <select class="mes-selector" id="mes-impacto" onchange="calcular()">
+          <option value="">— simular impacto em:</option>
+        </select>
+      </div>
+      <canvas id="chart" height="85"></canvas>
+      <div class="impact-note" id="impact-note"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-header"><div class="dot"></div><span class="panel-title">Histórico de despesas não planejadas</span></div>
+    <div class="hist-add-row">
+      <button class="add-btn" onclick="registrarDespesa()">+ Registrar esta despesa</button>
+      <span class="hint">Histórico útil pro board — mostra padrão de despesas surpresa ao longo do tempo.</span>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Data</th><th>Mês ref.</th><th>Descrição</th><th>Valor</th><th>Urgência</th><th>Decisão</th><th></th></tr>
+      </thead>
+      <tbody id="hist-body"><tr class="empty-row"><td colspan="7">Nenhuma despesa registrada ainda.</td></tr></tbody>
+    </table>
+    <div class="summary-bar" id="summary-bar" style="display:none"></div>
+  </div>
+
+</main>
+
+<footer>49 Educação · Gestão &amp; Finanças · Fluxo de Caixa Detalhado COM PS</footer>
+
+<script>
+const FLUXO = [
+  {mes:"Jan/2025",saldo_inicial:866097.35,receitas:182988.71,despesas:-491642.29,saldo_final:557443.77},
+  {mes:"Fev/2025",saldo_inicial:557443.77,receitas:228922.47,despesas:-307234.68,saldo_final:479131.56},
+  {mes:"Mar/2025",saldo_inicial:479131.56,receitas:172416.58,despesas:-264272.14,saldo_final:387276.00},
+  {mes:"Abr/2025",saldo_inicial:387276.00,receitas:171094.58,despesas:-321722.93,saldo_final:236647.65},
+  {mes:"Mai/2025",saldo_inicial:236647.65,receitas:420594.43,despesas:-239500.67,saldo_final:417741.41},
+  {mes:"Jun/2025",saldo_inicial:417741.41,receitas:121631.91,despesas:-270946.68,saldo_final:268426.64},
+  {mes:"Jul/2025",saldo_inicial:268426.64,receitas:190088.47,despesas:-325011.57,saldo_final:133503.54},
+  {mes:"Ago/2025",saldo_inicial:133503.54,receitas:264890.95,despesas:-294078.67,saldo_final:104315.82},
+  {mes:"Set/2025",saldo_inicial:104315.82,receitas:400752.29,despesas:-292316.00,saldo_final:212752.11},
+  {mes:"Out/2025",saldo_inicial:212752.11,receitas:417456.48,despesas:-320031.46,saldo_final:310177.13},
+  {mes:"Nov/2025",saldo_inicial:310177.13,receitas:251424.30,despesas:-224020.28,saldo_final:337581.16},
+  {mes:"Dez/2025",saldo_inicial:337581.16,receitas:416296.31,despesas:-345056.88,saldo_final:408820.60},
+  {mes:"Jan/2026",saldo_inicial:359681.23,receitas:74167.90,despesas:-223353.16,saldo_final:210495.97},
+  {mes:"Fev/2026",saldo_inicial:210495.97,receitas:50592.78,despesas:-139077.22,saldo_final:122011.53},
+  {mes:"Mar/2026",saldo_inicial:122011.53,receitas:75314.12,despesas:-145674.82,saldo_final:51650.82},
+  {mes:"Abr/2026",saldo_inicial:51650.82,receitas:92929.76,despesas:-165066.61,saldo_final:-20486.03},
+  {mes:"Mai/2026",saldo_inicial:-20486.03,receitas:103253.26,despesas:-151042.53,saldo_final:-68275.29},
+  {mes:"Jun/2026",saldo_inicial:-68275.29,receitas:47232.95,despesas:-158797.05,saldo_final:-179839.39},
+  {mes:"Jul/2026",saldo_inicial:-179839.39,receitas:128563.36,despesas:-197735.02,saldo_final:-249011.05},
+  {mes:"Ago/2026",saldo_inicial:-249011.05,receitas:201719.43,despesas:-218699.84,saldo_final:-265991.46},
+  {mes:"Set/2026",saldo_inicial:-265991.46,receitas:358748.55,despesas:-243892.54,saldo_final:-151135.45},
+  {mes:"Out/2026",saldo_inicial:-151135.45,receitas:372690.67,despesas:-268883.85,saldo_final:-47328.62},
+  {mes:"Nov/2026",saldo_inicial:-47328.62,receitas:227700.87,despesas:-203788.92,saldo_final:-23416.68},
+  {mes:"Dez/2026",saldo_inicial:-23416.68,receitas:410728.19,despesas:-358959.10,saldo_final:28352.41},
+];
+
+let historico = JSON.parse(localStorage.getItem('49ed_hist_v2') || '[]');
+let chartInstance = null;
+let currentView = 'saldo';
+let currentDecisao = '', currentCls = '';
+
+function fmt(v) { return 'R$\u00a0' + Math.round(v).toLocaleString('pt-BR'); }
+function fmtK(v) {
+  const abs = Math.abs(v);
+  if (abs >= 1000000) return (v/1000000).toFixed(1) + 'M';
+  if (abs >= 1000) return (v/1000).toFixed(0) + 'k';
+  return Math.round(v).toString();
+}
+
+function populateSelects() {
+  const mesRef = document.getElementById('mes-ref');
+  const mesImp = document.getElementById('mes-impacto');
+  FLUXO.forEach((f, i) => {
+    mesRef.innerHTML += `<option value="${i}">${f.mes}</option>`;
+    mesImp.innerHTML += `<option value="${i}">${f.mes}</option>`;
+  });
+  const meses = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const hoje = new Date();
+  let idx = FLUXO.findIndex(f => {
+    const [m, a] = f.mes.split('/');
+    return parseInt(a) === hoje.getFullYear() && meses.indexOf(m) === hoje.getMonth();
+  });
+  if (idx < 0) idx = 14;
+  mesRef.value = idx;
+  onMesChange(false);
+}
+
+function onMesChange(recalc = true) {
+  const idx = parseInt(document.getElementById('mes-ref').value);
+  const f = FLUXO[idx];
+  document.getElementById('saldo').value = Math.round(f.saldo_inicial);
+  document.getElementById('receitas').value = Math.round(f.receitas);
+  document.getElementById('comprometido').value = Math.round(Math.abs(f.despesas));
+  if (recalc) calcular();
+}
+
+function calcular() {
+  const saldo = +document.getElementById('saldo').value || 0;
+  const comp = +document.getElementById('comprometido').value || 0;
+  const rec = +document.getElementById('receitas').value || 0;
+  const reserva = +document.getElementById('reserva').value || 0;
+  const valor = +document.getElementById('valor').value || 0;
+  const desc = document.getElementById('desc').value || 'despesa';
+  const urgencia = document.getElementById('urgencia').value;
+  const natureza = document.getElementById('natureza').value;
+
+  const projetado = saldo + rec - comp;
+  const margemAntes = projetado - reserva;
+  const margemDepois = margemAntes - valor;
+
+  document.getElementById('margem-antes').textContent = fmt(margemAntes);
+  document.getElementById('margem-depois').textContent = fmt(margemDepois);
+
+  let cls, decisao, mensagem;
+  if (margemDepois >= 0 && urgencia === 'alta') {
+    cls='ok'; decisao='Pode pagar agora';
+    document.getElementById('status-texto').textContent = 'Caixa aguenta e a urgência justifica.';
+    mensagem = `Leandro, vi a despesa de ${desc} (${fmt(valor)}). Temos margem esse mês — posso incluir no fluxo e pagar já. Só confirmo a data de vencimento.`;
+  } else if (margemDepois >= 0 && urgencia === 'media') {
+    cls='ok'; decisao='Pode pagar agora';
+    document.getElementById('status-texto').textContent = 'Caixa aguenta, mas vale confirmar prioridade.';
+    mensagem = `Leandro, em relação a ${desc} (${fmt(valor)}): o caixa suporta esse mês, mas ficamos com folga de ${fmt(margemDepois)} acima da reserva. Posso pagar agora ou, se não for urgente, empurro pro próximo mês pra preservar margem. Como prefere?`;
+  } else if (margemDepois >= 0 && urgencia === 'baixa') {
+    cls='warn'; decisao='Sugerido: próximo mês';
+    document.getElementById('status-texto').textContent = 'Caixa aguenta, mas urgência é baixa — melhor guardar margem.';
+    mensagem = `Leandro, sobre ${desc} (${fmt(valor)}): tecnicamente cabe esse mês, mas a urgência parece baixa e ficaríamos com pouca folga (${fmt(margemDepois)} acima da reserva). Minha sugestão é jogar pro início do próximo mês e preservar o caixa. Faz sentido?`;
+  } else if (margemDepois < 0 && urgencia === 'alta') {
+    cls='danger'; decisao='Atenção: abaixo da reserva';
+    document.getElementById('status-texto').textContent = 'Pagar agora rompe a reserva mínima.';
+    mensagem = `Leandro, sobre ${desc} (${fmt(valor)}): entendo que é urgente, mas se pagar esse mês ficamos ${fmt(Math.abs(margemDepois))} abaixo da reserva mínima (${fmt(reserva)}). Duas opções: (1) parcelar se o fornecedor aceitar, ou (2) identificar outra despesa que pode deslizar pro próximo mês. Qual prefere?`;
+  } else {
+    cls='danger'; decisao='Sugerido: próximo mês';
+    document.getElementById('status-texto').textContent = 'Pagar agora rompe a reserva. Urgência não justifica o risco.';
+    const proxMes = new Date(new Date().getFullYear(), new Date().getMonth()+1, 5);
+    mensagem = `Leandro, sobre ${desc} (${fmt(valor)}): esse mês não temos margem segura — pagaríamos ficando ${fmt(Math.abs(margemDepois))} abaixo da reserva. Como a urgência parece flexível, minha sugestão é agendar pro próximo mês. Posso registrar no Conta Azul com competência ${proxMes.toLocaleDateString('pt-BR')}?`;
+  }
+  if (natureza === 'recorrente') mensagem += `\n\n[Obs.: sendo recorrente, vou incluir no orçamento fixo a partir do próximo mês — ${fmt(valor)}/mês.]`;
+
+  const badge = document.getElementById('status-badge');
+  badge.textContent = decisao; badge.className = 'badge ' + cls;
+  document.getElementById('margem-depois').className = 'metric-value ' + cls;
+  document.getElementById('msg').textContent = mensagem;
+  currentDecisao = decisao; currentCls = cls;
+  renderChart();
+}
+
+function setView(v, btn) {
+  currentView = v;
+  document.querySelectorAll('.seg-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderChart();
+}
+
+function renderChart() {
+  const valor = +document.getElementById('valor').value || 0;
+  const impIdx = document.getElementById('mes-impacto').value;
+  const labels = FLUXO.map(f => f.mes);
+  let datasets = [];
+
+  if (currentView === 'saldo') {
+    const base = FLUXO.map(f => f.saldo_final);
+    datasets = [{ label: 'Saldo projetado (planilha)', data: base, borderColor: '#13213C', borderWidth: 2, pointRadius: 3, pointBackgroundColor: base.map(v => v<0?'#b91c1c':'#13213C'), fill: false, tension: 0.35 }];
+    if (impIdx !== '') {
+      const comD = FLUXO.map((f,i) => i >= parseInt(impIdx) ? f.saldo_final - valor : f.saldo_final);
+      datasets.push({ label: `Com despesa (${fmt(valor)})`, data: comD, borderColor: '#E55D09', borderWidth: 2, borderDash: [5,4], pointRadius: 3, pointBackgroundColor: '#E55D09', fill: false, tension: 0.35 });
+    }
+  } else if (currentView === 'resultado') {
+    const res = FLUXO.map(f => f.receitas + f.despesas);
+    datasets = [{ label: 'Resultado mensal (R$)', data: res, backgroundColor: res.map(v => v>=0?'rgba(26,127,90,0.7)':'rgba(185,28,28,0.65)'), borderRadius: 4, borderSkipped: false }];
+  } else {
+    datasets = [
+      { label: 'Receitas', data: FLUXO.map(f => f.receitas), backgroundColor: 'rgba(26,127,90,0.65)', borderRadius: 3, borderSkipped: false },
+      { label: 'Despesas', data: FLUXO.map(f => Math.abs(f.despesas)), backgroundColor: 'rgba(185,28,28,0.55)', borderRadius: 3, borderSkipped: false }
+    ];
+  }
+
+  if (chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(document.getElementById('chart').getContext('2d'), {
+    type: currentView === 'saldo' ? 'line' : 'bar',
+    data: { labels, datasets },
+    options: {
+      responsive: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { labels: { font: { family: 'DM Sans', size: 12 }, color: '#4a5568', boxWidth: 12, padding: 16 } },
+        tooltip: { callbacks: { label: c => ` ${c.dataset.label}: ${fmt(c.parsed.y)}` }, bodyFont: { family: 'DM Mono', size: 12 }, titleFont: { family: 'DM Sans', size: 12 } }
+      },
+      scales: {
+        x: { ticks: { font: { family: 'DM Sans', size: 11 }, color: '#8896a8', maxRotation: 45 }, grid: { display: false } },
+        y: { ticks: { font: { family: 'DM Mono', size: 11 }, color: '#8896a8', callback: v => fmtK(v) }, grid: { color: 'rgba(19,33,60,0.06)' } }
+      }
+    }
+  });
+
+  const note = document.getElementById('impact-note');
+  if (impIdx !== '' && valor > 0) {
+    const f = FLUXO[parseInt(impIdx)];
+    const depois = f.saldo_final - valor;
+    note.style.display = 'block';
+    note.innerHTML = `Aplicando <strong>${fmt(valor)}</strong> em <strong>${f.mes}</strong>: saldo final passa de <strong>${fmt(f.saldo_final)}</strong> para <strong>${fmt(depois)}</strong>${depois < 0 ? ' — <span style="color:var(--red);font-weight:500">caixa negativo nesse mês.</span>' : '.'}`;
+  } else {
+    note.style.display = 'none';
+  }
+}
+
+function copiarMsg() {
+  navigator.clipboard.writeText(document.getElementById('msg').textContent).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'Copiado!'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copiar mensagem'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function registrarDespesa() {
+  const mesIdx = parseInt(document.getElementById('mes-ref').value);
+  const desc = document.getElementById('desc').value || 'sem descrição';
+  const valor = +document.getElementById('valor').value || 0;
+  const urgEl = document.getElementById('urgencia');
+  const urgencia = urgEl.options[urgEl.selectedIndex].text.split('—')[0].trim();
+  historico.push({ data: new Date().toLocaleDateString('pt-BR'), mes: FLUXO[mesIdx].mes, desc, valor, urgencia, decisao: currentDecisao, cls: currentCls });
+  localStorage.setItem('49ed_hist_v2', JSON.stringify(historico));
+  renderHistorico();
+}
+
+function removerItem(i) {
+  historico.splice(i, 1);
+  localStorage.setItem('49ed_hist_v2', JSON.stringify(historico));
+  renderHistorico();
+}
+
+function renderHistorico() {
+  const tbody = document.getElementById('hist-body');
+  const summary = document.getElementById('summary-bar');
+  if (!historico.length) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="7">Nenhuma despesa registrada ainda.</td></tr>';
+    summary.style.display = 'none'; return;
+  }
+  tbody.innerHTML = historico.map((h,i) => `
+    <tr>
+      <td class="mono">${h.data}</td><td>${h.mes||'—'}</td><td>${h.desc}</td>
+      <td class="mono">${fmt(h.valor)}</td><td>${h.urgencia}</td>
+      <td><span class="badge ${h.cls}" style="font-size:11px">${h.decisao}</span></td>
+      <td><button class="del-btn" onclick="removerItem(${i})">×</button></td>
+    </tr>`).join('');
+  const total = historico.reduce((s,h) => s+h.valor, 0);
+  const adiar = historico.filter(h => h.cls!=='ok').reduce((s,h) => s+h.valor, 0);
+  const pagar = historico.filter(h => h.cls==='ok').reduce((s,h) => s+h.valor, 0);
+  summary.style.display = 'flex';
+  summary.innerHTML = `<span>${historico.length} despesa${historico.length>1?'s':''}</span><span>Total: <strong>${fmt(total)}</strong></span><span>Aprovadas: <strong>${fmt(pagar)}</strong></span><span>Adiadas/em risco: <strong>${fmt(adiar)}</strong></span>`;
+}
+
+populateSelects();
+calcular();
+renderHistorico();
+</script>
+</body>
+</html>
